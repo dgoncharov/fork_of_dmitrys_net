@@ -2,11 +2,11 @@
 BIN=./bin/
 SOURCE=./src/
 
-LIST=$(BIN)/net2 $(BIN)/cmd2
+LIST=$(BIN)/net2 $(BIN)/cmd2 $(BIN)/tp
 CC=c++
-CFLAGS=-std=c++17
+CFLAGS=-std=c++17 -g
 
 all: $(LIST)
 $(BIN)/%:  $(SOURCE)%.C
 	@mkdir -p $(@D)
-	$(CC) $(INC) $< $(CFLAGS) -o $@ $(LIBS)
+	time $(CC) $(INC) $< $(CFLAGS) -o $@ $(LIBS)
