@@ -17,7 +17,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
 struct BaseField{
 	virtual void exec(const std::string v_)=0;
 };
