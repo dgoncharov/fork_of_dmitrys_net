@@ -45,6 +45,15 @@ struct FlagField : public BaseField{
 #define GET_PARENT(identifier) (&std::remove_pointer_t<decltype(this)>::identifier)
 
 #define FLD(C,T,N,D) T N = D; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
+/*
+	IntField sz;
+	static BaseCmd::pfield szF(BaseCmd* p)
+	{
+		return BaseCmd::pfield("sz",static_cast<UserCmd*>(p)->sz);
+	}
+*/
+
+#define FLD2(C,N) info.push_back(C::N##F);
 
 struct BaseCmd{
 	typedef std::pair<std::string,BaseField&> pfield;
@@ -56,25 +65,17 @@ struct UserCmd : public BaseCmd{
 	FLD(UserCmd,IntField,sd,11)
 	FLD(UserCmd,IntField,sz,12)
 	FLD(UserCmd,FlagField,off,false)
-/*
-	IntField sz;
-	static BaseCmd::pfield szF(BaseCmd* p)
-	{
-		return BaseCmd::pfield("sz",static_cast<UserCmd*>(p)->sz);
-	}
-*/
 
 	static BaseCmd::pvec info;
 
 	static BaseCmd::pvec init()
 	{
 		BaseCmd::pvec tmp;
-		tmp.push_back(&UserCmd::sdF);
-		tmp.push_back(&UserCmd::szF);
-		tmp.push_back(&UserCmd::offF);
+		FLD2(UserCmd,sd)
+		FLD2(UserCmd,sz)
+		FLD2(UserCmd,off)
 		return tmp;
 	}
-
 } ucmd;
 
 BaseCmd::pvec UserCmd::info(UserCmd::init());
@@ -96,7 +97,7 @@ struct token
 	}
 	size_t has_prefix() 
 	{
-		return ( size() > 1 ) ? (*p1 == '-' && *(p1+1) == '-') : false;
+		return ( size() > 1 ) ? (p1[0] == '-' && p1[1] == '-') : false;
 	}
 };
 
@@ -113,12 +114,17 @@ struct AdminMgr{
 
 		while( *pos )
 		{
-			if( *pos == ' ' )
+			if( *pos == ' ' || *(pos+1) == '\0' )
 			{
-				if( p != ' ' )
+				if ( *(pos+1) == '\0' && *pos != ' ' )
+				{
+					tokens.back().p2 = pos+1;
+				}
+				else if( p != ' ' )
 				{
 					tokens.back().p2 = pos;
 				}
+
 			}
 			else if( p == ' ' )
 			{
@@ -128,18 +134,6 @@ struct AdminMgr{
 			}
 			p = *pos;
 			++pos;
-		}
-
-		if( tokens.size() && !tokens.back().p2)
-		{
-			auto& b = tokens.back();
-
-			b.p2 = pos;
-
-			std::cout 
-				<< " s=" << b.size()
-				<< " b=" << b.as_string()
-				<< '\n'  << std::endl;
 		}
 
 		for(auto& f : pvec_)
@@ -173,10 +167,9 @@ struct MyT
 int main(int argc, const char * argv[]) {
 		
 		AdminMgr adminMgr;
-		ucmd.init();
 		adminMgr.reg(" tail mail", ucmd.info, ucmd);
 
-    std::tuple t{}; // Another C++17 feature: class template argument deduction
+    std::tuple t{};
     std::apply([](auto&&... args) {((std::cout << args << '\n'), ...);}, t);
 
 		std::cout << std::get<1>(myT.f).v << '\n' << std::endl;
