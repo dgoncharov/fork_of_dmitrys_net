@@ -213,6 +213,7 @@ int main(int argc, const char * argv[]) {
 		AdminMgr adminMgr;
 		adminMgr.reg(" \"tail \\\" \" mail ", ucmd.info, ucmd);
 
+
     std::tuple t{};
     std::apply([](auto&&... args) {((std::cout << args << '\n'), ...);}, t);
 
