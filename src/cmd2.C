@@ -21,7 +21,6 @@ struct BaseField{
 	virtual void exec(const std::string v_)=0;
 };
 
-
 struct IntField : public BaseField{
 	int v = 10;
 	IntField(int v_) : v(v_) {}
