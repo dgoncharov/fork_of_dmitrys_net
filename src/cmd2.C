@@ -107,6 +107,7 @@ struct AdminMgr{
 		char p = ' ';
 		char t = '\0';
 		int  id = 0;
+		bool e = false;
 
 		std::vector<token> tokens;
 
@@ -114,27 +115,71 @@ struct AdminMgr{
 
 		while( *pos )
 		{
-			if( *pos == ' ' || *(pos+1) == '\0' )
+/*
+			std::cout  
+				<< " pos="<< *pos
+				<< " t="  << t
+				<< " p="  << p
+				<< " e="  << e
+				<< '\n'  << std::endl;
+*/
+
+			if( *pos == ' ' && t && t != 'f' && (p != t || e) )
+			{
+				//std::cout  << "space"  << e << '\n'  << std::endl;
+				if(*(pos+1) == '\0')
+				{
+					std::cout  << "unclsoed"  << e << '\n'  << std::endl;
+					return;
+				}
+			}
+			else if( *pos == ' ' || *(pos+1) == '\0' )
 			{
 				if ( *(pos+1) == '\0' && *pos != ' ' )
 				{
+					if(t && t != 'f')
+					{
+						std::cout  << "unclsoed"  << e << '\n'  << std::endl;
+						return;
+					}
+					//std::cout  << "e1"  << '\n'  << std::endl;
 					tokens.back().p2 = pos+1;
 				}
 				else if( p != ' ' )
 				{
+					//std::cout  << "e2"  << '\n'  << std::endl;
 					tokens.back().p2 = pos;
 				}
-
+				//std::cout  << "e3" << '\n'  << std::endl;
+				t = '\0';
+			}
+			else if( p == ' ' && t && t != 'f')
+			{
 			}
 			else if( p == ' ' )
 			{
+				if( *pos == '\"' || *pos == '\'' )
+					t=*pos;
+				else
+					t = 'f';
 				tokens.push_back(token());
 				tokens.back().p1 = pos;
 				tokens.back().id = id++;
 			}
+			e = (!e && p == '\\');
 			p = *pos;
 			++pos;
 		}
+/*
+		for(auto& t : tokens)
+		{
+			std::cout  
+				<< " p1=" << t.p1 - cmd_
+				<< " p2=" << t.p2 - cmd_
+				<< " c =" << t.as_string()
+				<< '\n'  << std::endl;
+		}
+*/
 
 		for(auto& f : pvec_)
 		{
@@ -167,7 +212,7 @@ struct MyT
 int main(int argc, const char * argv[]) {
 		
 		AdminMgr adminMgr;
-		adminMgr.reg(" tail mail", ucmd.info, ucmd);
+		adminMgr.reg(" \"tail \\\" \" mail ", ucmd.info, ucmd);
 
     std::tuple t{};
     std::apply([](auto&&... args) {((std::cout << args << '\n'), ...);}, t);
