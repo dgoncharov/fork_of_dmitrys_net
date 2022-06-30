@@ -45,10 +45,10 @@ struct StrField : public BaseField{
 };
 
 
-struct FlagField : public BaseField{
+struct FlgField : public BaseField{
 	bool v = false;
-	FlagField(bool v_) : v(v_) {}
-	FlagField() {}
+	FlgField(bool v_) : v(v_) {}
+	FlgField() {}
 	virtual bool assign(const std::string v_)
 	{
 		bool v1 = v_ == "on";	
@@ -61,7 +61,7 @@ struct FlagField : public BaseField{
 
 #define GET_PARENT(identifier) (&std::remove_pointer_t<decltype(this)>::identifier)
 
-#define FLD(C,T,N,D) T N = D; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
+#define FLD(C,T,N,D) T N; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
 /*
 	IntField sz;
 	static BaseCmd::pfield szF(BaseCmd* p)
@@ -79,9 +79,9 @@ struct BaseCmd{
 
 struct UserCmd : public BaseCmd{
 
-	FLD(UserCmd,IntField,sd,11)
-	FLD(UserCmd,IntField,sz,12)
-	FLD(UserCmd,FlagField,off,false)
+	FLD(UserCmd,IntField,sd,0)
+	FLD(UserCmd,StrField,sz,"")
+	FLD(UserCmd,FlgField,off,false)
 
 	static BaseCmd::pvec info;
 
@@ -183,7 +183,7 @@ struct AdminMgr{
 			{
 				if ( *(pos+1) == '\0' && *pos != ' ' )
 				{
-					if(t && t != 'f')
+					if(t && t != 'f' && t != *pos)
 					{
 						std::cout  << "unclosed f at:"  << (pos - cmd_) << '\n'  << std::endl;
 						return;
