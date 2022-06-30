@@ -266,7 +266,7 @@ int main(int argc, const char * argv[]) {
 
 		if(argc != 2)
 		{
-			std::cout  << "pass quoted command with format (int,int,on/off)" <<  '\n'  << std::endl;
+			std::cout  << "pass quoted command with format: int str on/off" <<  '\n'  << std::endl;
 			return 1;
 		}
 		else
