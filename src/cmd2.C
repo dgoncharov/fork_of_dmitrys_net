@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <map>
 #include <string>
 #include <tuple>
 #include <iostream>
@@ -18,24 +19,42 @@
 #include <sys/stat.h>
 
 struct BaseField{
-	virtual void exec(const std::string v_)=0;
+	virtual bool assign(const std::string v_)=0;
 };
 
 struct IntField : public BaseField{
 	int v = 10;
 	IntField(int v_) : v(v_) {}
 	IntField() {}
-	virtual void exec(const std::string v_)
+	virtual bool assign(const std::string v_)
 	{
+		v = atoi(v_.data());
+		return true;
 	}
 };
 
+struct StrField : public BaseField{
+	std::string v;
+	StrField(const std::string& v_) : v(v_) {}
+	StrField() {}
+	virtual bool assign(const std::string v_)
+	{
+		v = v_;
+		return true;
+	}
+};
+
+
 struct FlagField : public BaseField{
-	bool v = true;
+	bool v = false;
 	FlagField(bool v_) : v(v_) {}
 	FlagField() {}
-	virtual void exec(const std::string v_)
+	virtual bool assign(const std::string v_)
 	{
+		bool v1 = v_ == "on";	
+		bool p1 = v_ == "off";	
+		v = v1;
+		return v1 || p1;
 	}
 };
 
@@ -74,7 +93,7 @@ struct UserCmd : public BaseCmd{
 		FLD2(UserCmd,off)
 		return tmp;
 	}
-} ucmd;
+};
 
 BaseCmd::pvec UserCmd::info(UserCmd::init());
 
@@ -99,11 +118,40 @@ struct token
 	}
 };
 
+void cmdF(UserCmd& cmd)
+{
+		std::cout
+			<< " Execution:"
+			<< " sd="  << cmd.sd.v
+			<< " sz="  << cmd.sz.v
+			<< " off=" << cmd.off.v
+			<< '\n'  << std::endl;
+}
+	
 struct AdminMgr{
-	void reg(const char* cmd_, 	BaseCmd::pvec& pvec_, BaseCmd& b)
+
+	typedef std::function<void(const char*)> AdminFunc;
+	std::map<std::string,AdminFunc> adminF;
+
+	template <typename T>
+	void reg(const std::string& name_, std::function<void(T&)> f)
+	{
+		adminF[name_] = [&](const char* cmdline) { 
+			T t; 
+			run(cmdline, t.info, t);
+			f(t); 
+		};
+	}
+
+	void run(const std::string& name_, const char* cmd_)
+	{
+		adminF[name_](cmd_);	
+	}
+
+	void run(const char* cmd_, 	BaseCmd::pvec& pvec_, BaseCmd& b)
 	{
 		char p = ' ';
-		char t = '\0';
+		char t = '\0'; //t can be (0 f(field) ' ")
 		int  id = 0;
 		bool e = false;
 
@@ -127,7 +175,7 @@ struct AdminMgr{
 				//std::cout  << "space"  << e << '\n'  << std::endl;
 				if(*(pos+1) == '\0')
 				{
-					std::cout  << "unclsoed"  << e << '\n'  << std::endl;
+					std::cout  << "unclosed at:"  << (pos - cmd_) << '\n'  << std::endl;
 					return;
 				}
 			}
@@ -137,9 +185,15 @@ struct AdminMgr{
 				{
 					if(t && t != 'f')
 					{
-						std::cout  << "unclsoed"  << e << '\n'  << std::endl;
+						std::cout  << "unclosed at:"  << (pos - cmd_) << '\n'  << std::endl;
 						return;
 					}
+					if(tokens.empty() || tokens.back().p2)
+					{
+						std::cout  << "internal parsing error at:"  << (pos - cmd_) << '\n'  << std::endl;
+						return;
+					}
+
 					//std::cout  << "e1"  << '\n'  << std::endl;
 					tokens.back().p2 = pos+1;
 				}
@@ -168,6 +222,7 @@ struct AdminMgr{
 			p = *pos;
 			++pos;
 		}
+
 /*
 		for(auto& t : tokens)
 		{
@@ -177,20 +232,15 @@ struct AdminMgr{
 				<< " c =" << t.as_string()
 				<< '\n'  << std::endl;
 		}
-*/
 
+*/
 		for(auto& f : pvec_)
 		{
 			auto p = f(&b);
-		
 			auto idx = &f - &pvec_.front();
-
 			if( idx < tokens.size() )
 			{
-				std::cout << p.first 
-					//<< " v=" << static_cast<IntField&>(p.second).v
-					<< " v=" << tokens[idx].as_string()
-			 		<< '\n'  << std::endl;
+				p.second.assign(tokens[idx].as_string());
 			}
 		}
 	}
@@ -208,15 +258,28 @@ struct MyT
 } myT;
 
 int main(int argc, const char * argv[]) {
+
+		//not related sanbox with tuples
+    //std::tuple t{};
+    //std::apply([](auto&&... args) {((std::cout << args << '\n'), ...);}, t);
+		//std::cout << std::get<1>(myT.f).v << '\n' << std::endl;
+
+		if(argc != 2)
+		{
+			std::cout  << "pass quoted command with format (int,int,on/off)" <<  '\n'  << std::endl;
+			return 1;
+		}
+		else
+		{
+			std::cout  << "command:" << argv[1] << '\n' << std::endl;
+		}
 		
 		AdminMgr adminMgr;
-		adminMgr.reg(" \"tail \\\" \" mail ", ucmd.info, ucmd);
 
+		adminMgr.reg<UserCmd>("tail", cmdF);
 
-    std::tuple t{};
-    std::apply([](auto&&... args) {((std::cout << args << '\n'), ...);}, t);
+		adminMgr.run("tail", argv[1]);
 
-		std::cout << std::get<1>(myT.f).v << '\n' << std::endl;
 
     return 0;
 }
