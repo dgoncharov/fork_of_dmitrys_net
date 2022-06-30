@@ -175,7 +175,7 @@ struct AdminMgr{
 				//std::cout  << "space"  << e << '\n'  << std::endl;
 				if(*(pos+1) == '\0')
 				{
-					std::cout  << "unclosed at:"  << (pos - cmd_) << '\n'  << std::endl;
+					std::cout  << "unclosed e at:"  << (pos - cmd_) << '\n'  << std::endl;
 					return;
 				}
 			}
@@ -185,7 +185,7 @@ struct AdminMgr{
 				{
 					if(t && t != 'f')
 					{
-						std::cout  << "unclosed at:"  << (pos - cmd_) << '\n'  << std::endl;
+						std::cout  << "unclosed f at:"  << (pos - cmd_) << '\n'  << std::endl;
 						return;
 					}
 					if(tokens.empty() || tokens.back().p2)
