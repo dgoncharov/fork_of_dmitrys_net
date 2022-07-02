@@ -19,25 +19,37 @@
 #include <sys/stat.h>
 
 struct BaseField{
-	virtual bool assign(const std::string v_)=0;
+	virtual bool assign(const std::string& v_)=0;
 };
 
 struct IntField : public BaseField{
-	int v = 10;
+	long long v = 0;
 	IntField(int v_) : v(v_) {}
-	IntField() {}
-	virtual bool assign(const std::string v_)
+	IntField(){}
+	virtual bool assign(const std::string& v_)
 	{
-		v = atoi(v_.data());
-		return true;
+		v = atoll(v_.data());
+		return v || v_ == "0";
 	}
 };
+
+struct FltField : public BaseField{
+	double v = 0;
+	FltField(double v_) : v(v_) {}
+	FltField(){}
+	virtual bool assign(const std::string& v_)
+	{
+		v = atof(v_.data());
+		return v!=0.0 || v_ == "0" || v_ == "0.0";
+	}
+};
+
 
 struct StrField : public BaseField{
 	std::string v;
 	StrField(const std::string& v_) : v(v_) {}
-	StrField() {}
-	virtual bool assign(const std::string v_)
+	StrField(){}
+	virtual bool assign(const std::string& v_)
 	{
 		v = v_;
 		return true;
@@ -45,11 +57,11 @@ struct StrField : public BaseField{
 };
 
 
-struct FlgField : public BaseField{
+struct FlagField : public BaseField{
 	bool v = false;
-	FlgField(bool v_) : v(v_) {}
-	FlgField() {}
-	virtual bool assign(const std::string v_)
+	FlagField(bool v_) : v(v_) {}
+	FlagField(){}
+	virtual bool assign(const std::string& v_)
 	{
 		bool v1 = v_ == "on";	
 		bool p1 = v_ == "off";	
@@ -61,7 +73,8 @@ struct FlgField : public BaseField{
 
 #define GET_PARENT(identifier) (&std::remove_pointer_t<decltype(this)>::identifier)
 
-#define FLD(C,T,N,D) T N; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
+#define FLDD(C,T,N,D) T N{D}; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
+#define FLDN(C,T,N)     T N;  static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
 /*
 	IntField sz;
 	static BaseCmd::pfield szF(BaseCmd* p)
@@ -79,17 +92,17 @@ struct BaseCmd{
 
 struct UserCmd : public BaseCmd{
 
-	FLD(UserCmd,IntField,sd,0)
-	FLD(UserCmd,StrField,sz,"")
-	FLD(UserCmd,FlgField,off,false)
+	FLDN(UserCmd,IntField,sz)
+	FLDN(UserCmd,FltField,sd)
+	FLDN(UserCmd,FlagField,off)
 
 	static BaseCmd::pvec info;
 
 	static BaseCmd::pvec init()
 	{
 		BaseCmd::pvec tmp;
-		FLD2(UserCmd,sd)
 		FLD2(UserCmd,sz)
+		FLD2(UserCmd,sd)
 		FLD2(UserCmd,off)
 		return tmp;
 	}
@@ -122,8 +135,8 @@ void cmdF(UserCmd& cmd)
 {
 		std::cout
 			<< " Execution:"
-			<< " sd="  << cmd.sd.v
 			<< " sz="  << cmd.sz.v
+			<< " sd="  << cmd.sd.v
 			<< " off=" << cmd.off.v
 			<< '\n'  << std::endl;
 }
@@ -161,25 +174,24 @@ struct AdminMgr{
 
 		while( *pos )
 		{
-/*
+			/*
 			std::cout  
-				<< " pos="<< *pos
-				<< " t="  << t
-				<< " p="  << p
+				<< " pos="<< pos
+				<< " t=["  << t <<"]"
+				<< " p=["  << p <<"]"
 				<< " e="  << e
 				<< '\n'  << std::endl;
-*/
+			*/
 
 			if( *pos == ' ' && t && t != 'f' && (p != t || e) )
 			{
-				//std::cout  << "space"  << e << '\n'  << std::endl;
 				if(*(pos+1) == '\0')
 				{
 					std::cout  << "unclosed e at:"  << (pos - cmd_) << '\n'  << std::endl;
 					return;
 				}
 			}
-			else if( *pos == ' ' || *(pos+1) == '\0' )
+			else if( *pos == ' ' || (t == 'f' && *(pos+1) == '\0') )
 			{
 				if ( *(pos+1) == '\0' && *pos != ' ' )
 				{
@@ -190,19 +202,15 @@ struct AdminMgr{
 					}
 					if(tokens.empty() || tokens.back().p2)
 					{
-						std::cout  << "internal parsing error at:"  << (pos - cmd_) << '\n'  << std::endl;
+						std::cout  << "internal parsing error at ["  << pos << "] p2:" << tokens.back().p2 << '\n'  << std::endl;
 						return;
 					}
-
-					//std::cout  << "e1"  << '\n'  << std::endl;
 					tokens.back().p2 = pos+1;
 				}
 				else if( p != ' ' )
 				{
-					//std::cout  << "e2"  << '\n'  << std::endl;
 					tokens.back().p2 = pos;
 				}
-				//std::cout  << "e3" << '\n'  << std::endl;
 				t = '\0';
 			}
 			else if( p == ' ' && t && t != 'f')
@@ -214,9 +222,21 @@ struct AdminMgr{
 					t=*pos;
 				else
 					t = 'f';
+
+				if(!tokens.empty() && !tokens.back().p2)
+				{
+					std::cout  << "internal parsing error at ["  << pos << "] p1:" << tokens.back().p1 << '\n'  << std::endl;
+					return;
+				}
+
 				tokens.push_back(token());
 				tokens.back().p1 = pos;
 				tokens.back().id = id++;
+
+				if( *(pos+1) == '\0' )
+				{
+					tokens.back().p2 = pos+1;
+				}
 			}
 			e = (!e && p == '\\');
 			p = *pos;
@@ -240,7 +260,10 @@ struct AdminMgr{
 			auto idx = &f - &pvec_.front();
 			if( idx < tokens.size() )
 			{
-				p.second.assign(tokens[idx].as_string());
+				if (!p.second.assign(tokens[idx].as_string()) )
+				{
+					std::cout  << "failed to assign param:" << p.first << " with value:"  << tokens[idx].as_string() << '\n'  << std::endl;
+				}
 			}
 		}
 	}
@@ -252,11 +275,6 @@ IntField,
 IntField
 > Fields;
 
-struct MyT
-{
-	Fields f;
-} myT;
-
 int main(int argc, const char * argv[]) {
 
 		//not related sanbox with tuples
@@ -266,7 +284,7 @@ int main(int argc, const char * argv[]) {
 
 		if(argc != 2)
 		{
-			std::cout  << "pass quoted command with format: int str on/off" <<  '\n'  << std::endl;
+			std::cout  << "pass quoted command with format: int str onoff ex: 12 str off" <<  '\n'  << std::endl;
 			return 1;
 		}
 		else
