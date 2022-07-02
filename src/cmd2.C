@@ -90,26 +90,6 @@ struct BaseCmd{
 	typedef std::vector<pfield (*)(BaseCmd *)> pvec;
 };
 
-struct UserCmd : public BaseCmd{
-
-	FLDN(UserCmd,IntField,sz)
-	FLDN(UserCmd,FltField,sd)
-	FLDN(UserCmd,FlagField,off)
-
-	static BaseCmd::pvec info;
-
-	static BaseCmd::pvec init()
-	{
-		BaseCmd::pvec tmp;
-		FLD2(UserCmd,sz)
-		FLD2(UserCmd,sd)
-		FLD2(UserCmd,off)
-		return tmp;
-	}
-};
-
-BaseCmd::pvec UserCmd::info(UserCmd::init());
-
 struct token
 {
 	char  t='\0';
@@ -131,16 +111,7 @@ struct token
 	}
 };
 
-void cmdF(UserCmd& cmd)
-{
-		std::cout
-			<< " Execution:"
-			<< " sz="  << cmd.sz.v
-			<< " sd="  << cmd.sd.v
-			<< " off=" << cmd.off.v
-			<< '\n'  << std::endl;
-}
-	
+
 struct AdminMgr{
 
 	typedef std::function<void(const char*)> AdminFunc;
@@ -254,6 +225,7 @@ struct AdminMgr{
 		}
 
 */
+		
 		for(auto& f : pvec_)
 		{
 			auto p = f(&b);
@@ -275,6 +247,36 @@ IntField,
 IntField
 > Fields;
 
+struct UserCmd : public BaseCmd{
+
+	FLDN(UserCmd,IntField,sz)
+	FLDN(UserCmd,FltField,sd)
+	FLDN(UserCmd,FlagField,off)
+
+	static BaseCmd::pvec info;
+
+	static BaseCmd::pvec init()
+	{
+		BaseCmd::pvec tmp;
+		FLD2(UserCmd,sz)
+		FLD2(UserCmd,sd)
+		FLD2(UserCmd,off)
+		return tmp;
+	}
+};
+
+BaseCmd::pvec UserCmd::info(UserCmd::init());
+
+void cmdF(UserCmd& cmd)
+{
+		std::cout
+			<< " Execution:"
+			<< " sz="  << cmd.sz.v
+			<< " sd="  << cmd.sd.v
+			<< " off=" << cmd.off.v
+			<< '\n'  << std::endl;
+}
+	
 int main(int argc, const char * argv[]) {
 
 		//not related sanbox with tuples
