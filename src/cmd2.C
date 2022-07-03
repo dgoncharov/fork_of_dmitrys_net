@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <array>
 #include <map>
 #include <string>
 #include <tuple>
@@ -73,8 +74,8 @@ struct FlagField : public BaseField{
 
 #define GET_PARENT(identifier) (&std::remove_pointer_t<decltype(this)>::identifier)
 
-#define FLDD(C,T,N,D) T N{D}; static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
-#define FLDN(C,T,N)     T N;  static BaseCmd::pfield N##F(BaseCmd* p) { return BaseCmd::pfield(#N,static_cast<C*>(p)->N);}
+#define FLDD(C,T,N,D,P) T N{D}; static BaseCmd::pfield N##F(BaseCmd* p) { return {#N,P,static_cast<C*>(p)->N};}
+#define FLDN(C,T,N,P)      T N; static BaseCmd::pfield N##F(BaseCmd* p) { return {#N,P,static_cast<C*>(p)->N};}
 /*
 	IntField sz;
 	static BaseCmd::pfield szF(BaseCmd* p)
@@ -83,11 +84,16 @@ struct FlagField : public BaseField{
 	}
 */
 
-#define FLD2(C,N) info.push_back(C::N##F);
-
 struct BaseCmd{
-	typedef std::pair<std::string,BaseField&> pfield;
-	typedef std::vector<pfield (*)(BaseCmd *)> pvec;
+
+	struct FieldInfo{
+		std::string name;
+		bool        is_param;
+		BaseField&  fld;
+	};
+
+	typedef FieldInfo pfield;
+	typedef std::array<BaseCmd::pfield (*)(BaseCmd *),3> pvec;
 };
 
 struct token
@@ -122,7 +128,7 @@ struct AdminMgr{
 	{
 		adminF[name_] = [&](const char* cmdline) { 
 			T t; 
-			run(cmdline, t.info, t);
+			run(cmdline, t.init(), t);
 			f(t); 
 		};
 	}
@@ -132,7 +138,7 @@ struct AdminMgr{
 		adminF[name_](cmd_);	
 	}
 
-	void run(const char* cmd_, 	BaseCmd::pvec& pvec_, BaseCmd& b)
+	void run(const char* cmd_, 	const BaseCmd::pvec pvec_, BaseCmd& b)
 	{
 		char p = ' ';
 		char t = '\0'; //t can be (0 f(field) ' ")
@@ -232,9 +238,9 @@ struct AdminMgr{
 			auto idx = &f - &pvec_.front();
 			if( idx < tokens.size() )
 			{
-				if (!p.second.assign(tokens[idx].as_string()) )
+				if (!p.fld.assign(tokens[idx].as_string()) )
 				{
-					std::cout  << "failed to assign param:" << p.first << " with value:"  << tokens[idx].as_string() << '\n'  << std::endl;
+					std::cout  << "failed to assign param:" << p.name << " with value:"  << tokens[idx].as_string() << '\n'  << std::endl;
 				}
 			}
 		}
@@ -249,23 +255,15 @@ IntField
 
 struct UserCmd : public BaseCmd{
 
-	FLDN(UserCmd,IntField,sz)
-	FLDN(UserCmd,FltField,sd)
-	FLDN(UserCmd,FlagField,off)
+	FLDN(UserCmd,IntField,sz,false)
+	FLDN(UserCmd,FltField,sd,false)
+	FLDN(UserCmd,FlagField,off,false)
 
-	static BaseCmd::pvec info;
-
-	static BaseCmd::pvec init()
+	static constexpr BaseCmd::pvec init()
 	{
-		BaseCmd::pvec tmp;
-		FLD2(UserCmd,sz)
-		FLD2(UserCmd,sd)
-		FLD2(UserCmd,off)
-		return tmp;
+		return { &UserCmd::szF, &UserCmd::sdF, &UserCmd::offF };
 	}
 };
-
-BaseCmd::pvec UserCmd::info(UserCmd::init());
 
 void cmdF(UserCmd& cmd)
 {
