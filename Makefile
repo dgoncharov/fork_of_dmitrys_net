@@ -2,7 +2,7 @@ ifneq (,)
 This makefile requires GNU Make.
 endif
 
-SHELL=/bin/bash
+SHELL=bash
 
 MAKEFLAGS:=-r
 .SUFFIXES:

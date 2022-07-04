@@ -1,5 +1,6 @@
-This Makefile requires out of source builds.
+This makefile requires out of source builds.
 Gnu make is required.
+This makefile requires bash.
 Create and subdiretory and build from there.
 E.g.
 $ mkdir l64
