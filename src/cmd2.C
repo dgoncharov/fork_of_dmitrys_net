@@ -1,13 +1,3 @@
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/event.h>
-#include <netdb.h>
-#include <assert.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <errno.h>
-
 #include <vector>
 #include <array>
 #include <map>
@@ -15,9 +5,8 @@
 #include <tuple>
 #include <iostream>
 #include <type_traits>
-
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <functional>
+#include <stdlib.h>
 
 struct BaseField{
 	virtual bool assign(const std::string& v_)=0;

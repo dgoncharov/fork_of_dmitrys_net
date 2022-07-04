@@ -18,7 +18,7 @@ extern "C" {
 // initialize for epoll
 int ret;
 int fd, cfd;
-struct sockaddr_in ssin, csin;
+struct sockaddr_in ssin, cs;
 socklen_t socklen = sizeof(struct sockaddr);
 int epfd;
 struct epoll_event ev;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
             else if (evlist[i].data.fd == fd)
             {
                 // accept
-                cfd = accept(fd, (struct sockaddr *)&csin, &socklen);
+                cfd = accept(fd, (struct sockaddr *)&cs, &socklen);
                 if (cfd == -1) { perror("accept"); exit(1); }
                 printf("\x1b[0;32m[*] accept\x1b[0m\n");
                 // epoll_ctl
@@ -139,3 +139,4 @@ int main(int argc, char *argv[])
     }
 
     return 0;
+}
